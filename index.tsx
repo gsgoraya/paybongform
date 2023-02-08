@@ -1,18 +1,87 @@
 import { Box, Button, Checkbox, CheckboxGroup, Input, Radio, Select, Stack, Textarea, Text, VStack, FormControl, FormLabel, HStack } from "@chakra-ui/react";
 import { useCallback, useEffect, useState } from "react";
 
-export default function FormButton({button, form, setForm, onOpen} : any) : JSX.Element {
+export const fieldOptions = function({button, field, index, form, setForm, type, builder}: any) : JSX.Element[] {
+    return field.options.map((option: any, oIndex: number) => {
+
+        return (
+            <HStack justifyContent='flex-start' key={oIndex}>
+                {type === 'radio' &&
+                    <Radio
+                        value={option.value}
+                        key={oIndex}
+                        isChecked={form[index]?.value === option.value}
+                        onChange={(e) => {
+                            // setForm( (prev: any) => ({
+                            //     ...prev,
+                            //     [index]: {
+                            //         ...prev[index],
+                            //         value: e.target.value
+                            //     }
+                            // }))
+                            // form is an array
+                            const newForm = [...form];
+                            newForm[index] = {
+                                ...newForm[index],
+                                value: e.target.value
+                            }
+                            setForm(newForm);
+                        }}
+                    >{option.value?.length ? option.value : (builder ? (<Text color='gray'>Option Text</Text>) : '')}</Radio> }
+
+                {type === 'checkboxes' &&
+                    <Checkbox 
+                        value={option.value} 
+                        key={oIndex}
+                        isChecked={form[index]?.value?.includes(option.value)}
+
+                        onChange={(e) => {
+
+                            if(e.target.checked) {
+
+                                const newForm = [...form];
+
+                                newForm[index] = {
+                                    ...newForm[index],
+                                    value: [...(newForm[index]?.value ?? [] ), option.value]
+                                }
+                                
+                                setForm(newForm);
+
+                            } else {
+
+                                const newForm = [...form];
+
+                                newForm[index] = {
+                                    ...newForm[index],
+                                    value: newForm[index].value.filter((val: any) => val !== option.value)
+                                }
+                                
+                                setForm(newForm);
+
+                            }
+                        }}
+                    >{option.value?.length ? option.value : (builder ? (<Text color='gray'>Option Text</Text>) : '')}</Checkbox>
+                }
+                {option.amount ? <Text color='gray.500' fontSize='sm' ml='4'>({option.minus ? '-' : '+'} {new Intl.NumberFormat('en-US', { style: 'currency', currency: button.currency }).format(option.amount)})</Text> : null}
+            </HStack>
+        )
+    })
+}
+
+export default function PayBongForm({button, form, setForm, onOpen, optionsItems} : any) : JSX.Element[] {
     
     const onClick = useCallback(() => {
-        onOpen();
+        if(onOpen)
+            onOpen();
     }, [])
     
     const [amount, setAmount] = useState(button.amount ? parseFloat(button.amount) : 0.0);
     const [formattedAmount, setFormattedAmount] = useState('');
 
-    useEffect(() => {
-        setAmount(button.amount ? parseFloat(button.amount) : 0.0);
-    }, [button])
+    // useEffect(() => {
+    //     setAmount(button.amount ? parseFloat(button.amount) : 0.0);
+    // }, [button])
 
     useEffect(() => {
         if(amount) {
@@ -24,15 +93,14 @@ export default function FormButton({button, form, setForm, onOpen} : any) : JSX.
     
 
     useEffect(() => {
-        
+        // console.log('formd', form)
         let variation = 0;
         
         for( const key in form ) {
             const item = form[key];
             if(button.form[key]) {
                 
-                if(['select', 'radio', 'checkboxes'].includes(button.form[key].type)) {
-                    console.log('searching for ', item.value);
+                if(['radio', 'checkboxes'].includes(button.form[key].type)) {
                     
                     const search = Array.isArray(item.value) ? item.value : [item.value];
                     
@@ -59,141 +127,110 @@ export default function FormButton({button, form, setForm, onOpen} : any) : JSX.
         
         // add variation to amount, and avoid floating point errors
         const newAmount = variation ? (button.amount * 100 + variation * 100) / 100 : button.amount;
+        
         setAmount(newAmount);
    
     
-    }, [form])
+    }, [form, button.amount])
 
-    return (
-        <VStack alignItems='flex-start' gap="2">
-            { button.form?.length && button.form.map((field: any, index: number) => {
+    
+    const formItems = button?.form?.map ? button.form.map((field: any, index: number) => {
+        const options = optionsItems?.[index];
+        return (
+            <FormControl key={index}>
+                <FormLabel>{field.label}</FormLabel>
+            { field.type === 'text' && 
+                <Input 
+                    placeholder={field.label} 
+                    value={form[index]?.value} 
+                    onChange={(e) => {
+                        // setForm( (prev: any) => ({
+                        //     ...prev,
+                        //     [index]: {
+                        //         ...prev[index],
+                        //         value: e.target.value
+                        //     }
+                        // }))
 
-                return (
-                    <FormControl key={index}>
-                        <FormLabel>{field.label}</FormLabel>
-                    { field.type === 'text' && 
-                        <Input 
-                            placeholder={field.label} 
-                            value={form[index]?.value} 
-                            onChange={(e) => {
-                                setForm( (prev: any) => ({
-                                    ...prev,
-                                    [index]: {
-                                        ...prev[index],
-                                        value: e.target.value
-                                    }
-                                }))
-                                
-                            }}
-                        />
-                    }
-                     
-                    { field.type === 'textarea' &&
-                        <Textarea
-                            placeholder={field.label}
-                            value={form[index]?.value}
-                            onChange={(e) => {
-                                setForm( (prev: any) => ({
-                                    ...prev,
-                                    [index]: {
-                                        ...prev[index],
-                                        value: e.target.value
-                                    }
-                                }))
-                            }}
-                        />
-                    }
+                        // form is an array
+                        const newForm = [...form];
+                        newForm[index] = {
+                            ...newForm[index],
+                            value: e.target.value
+                        }
+                        setForm(newForm);
 
-                    { field.type === 'select' && 
-                        <Select 
-                            value={form[index]?.value}
-                            onChange={(e) => {
-                                setForm( (prev: any) => ({
-                                    ...prev,
-                                    [index]: {
-                                        ...prev[index],
-                                        value: e.target.value
-                                    }
-                                }))
-                            }}
-                            >
-                            { field.options.map((option: any, oIndex: number) => <option key={oIndex} value={option.value}>{option.value} 
-                                {   option.amount ? 
-                                    ' (' + (option.minus ? '-' : '+') + (new Intl.NumberFormat('en-US', { style: 'currency', currency: button.currency }).format(option.amount)) + ')'
-                                     : null
-                                }</option>) }
 
-                        </Select> 
-                    }
+                        
+                    }}
+                />
+            }
+                
+            { field.type === 'textarea' &&
+                <Textarea
+                    placeholder={field.label}
+                    value={form[index]?.value}
+                    onChange={(e) => {
+                        // setForm( (prev: any) => ({
+                        //     ...prev,
+                        //     [index]: {
+                        //         ...prev[index],
+                        //         value: e.target.value
+                        //     }
+                        // }))
+                        // form is an array
+                        const newForm = [...form];
+                        newForm[index] = {
+                            ...newForm[index],
+                            value: e.target.value
+                        }
+                        setForm(newForm);
+                        
+                    }}
+                />
+            }
 
-                    { field.type === 'checkboxes' &&
-                        <VStack alignItems='flex-start'>
-                            { field.options.map((option: any, oIndex: number) => {
+            {/* { field.type === 'select' && 
+                <Select 
+                    value={form[index]?.value}
+                    onChange={(e) => {
+                        setForm( (prev: any) => ({
+                            ...prev,
+                            [index]: {
+                                ...prev[index],
+                                value: e.target.value
+                            }
+                        }))
+                    }}
+                    >
+                        { fieldOptions({field, index, form, setForm, type: field.type}) }
+                    { field.options.map((option: any, oIndex: number) => <option key={oIndex} value={option.value}>{option.value} 
+                        {   option.amount ? 
+                            ' (' + (option.minus ? '-' : '+') + (new Intl.NumberFormat('en-US', { style: 'currency', currency: button.currency }).format(option.amount)) + ')'
+                                : null
+                        }</option>) }
 
-                                return (
-                                    <HStack justifyContent='flex-start' key={oIndex}>
-                                        <Checkbox 
-                                            value={option.value} 
-                                            key={oIndex}
-                                            isChecked={form[index]?.value?.includes(option.value)}
-                                            onChange={(e) => {
-                                                if(e.target.checked) {
-                                                    setForm( (prev: any) => ({
-                                                        ...prev,
-                                                        [index]: {
-                                                            ...prev[index],
-                                                            value: [...prev[index].value, option.value]
-                                                        }
-                                                    }))
-                                                } else {
-                                                    setForm( (prev: any) => ({
-                                                        ...prev,
-                                                        [index]: {
-                                                            ...prev[index],
-                                                            value: prev[index].value.filter((val: any) => val !== option.value)
-                                                        }
-                                                    }))
-                                                }
-                                            }}
-                                        >{option.value}</Checkbox>
-                                        {option.amount ? <Text color='gray.500' fontSize='sm' ml='4'>({option.minus ? '-' : '+'} {new Intl.NumberFormat('en-US', { style: 'currency', currency: button.currency }).format(option.amount)})</Text> : null}
-                                    </HStack>
-                                )
-                            }) }
-                        </VStack>
-                    }
-                    { field.type === 'radio' && 
-                        <VStack alignItems='flex-start'>
-                            { field.options.map((option: any, oIndex: number) =>
-                                <HStack justifyContent='flex-start' key={oIndex}>
-                                    <Radio
-                                        value={option.value}
-                                        key={oIndex}
-                                        isChecked={form[index]?.value === option.value}
-                                        onChange={(e) => {
-                                            setForm( (prev: any) => ({
-                                                ...prev,
-                                                [index]: {
-                                                    ...prev[index],
-                                                    value: e.target.value
-                                                }
-                                            }))
-                                        }}
-                                    >{option.value}</Radio>
-                                    {option.amount ? <Text color='gray.500' fontSize='sm' ml='4'>({option.minus ? '-' : '+'} {new Intl.NumberFormat('en-US', { style: 'currency', currency: button.currency }).format(option.amount)})</Text> : null}
-                                </HStack>
-                            )}
-                        </VStack>
-                    }
-                    </FormControl>
-                )
-            })}
-            <VStack>
-                <Text fontSize="sm">{formattedAmount} ({button.currency?.toUpperCase()})</Text>
-                <Button onClick={onClick}>
-                    {button.label}
-                </Button>
-            </VStack>
+                </Select> 
+            } */}
+
+            { ['checkboxes', 'radio'].includes(field.type) &&
+                <VStack alignItems='flex-start'>
+                    { options ? options : fieldOptions({button, field, index, form, setForm, type: field.type}) }
+                </VStack>
+            }
+            </FormControl>
+        )
+    }) as JSX.Element[] : [];
+
+    formItems?.push((
+        <VStack>
+            <Text fontSize="sm">{formattedAmount} ({button.currency?.toUpperCase()})</Text>
+            <Button onClick={onClick}>
+                {button.label}
+            </Button>
         </VStack>
-    )
+    ))
+
+    return formItems;
+    
 }
