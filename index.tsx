@@ -12,14 +12,7 @@ export const fieldOptions = function({button, field, index, form, setForm, type,
                         key={oIndex}
                         isChecked={form[index]?.value === option.value}
                         onChange={(e) => {
-                            // setForm( (prev: any) => ({
-                            //     ...prev,
-                            //     [index]: {
-                            //         ...prev[index],
-                            //         value: e.target.value
-                            //     }
-                            // }))
-                            // form is an array
+                            
                             const newForm = [...form];
                             newForm[index] = {
                                 ...newForm[index],
