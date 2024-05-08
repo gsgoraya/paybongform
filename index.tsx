@@ -216,7 +216,7 @@ export default function PayBongForm({button, form, setForm, onOpen, optionsItems
     }) as JSX.Element[] : [];
 
     formItems?.push((
-        <VStack>
+        <VStack key="button-label">
             <Text fontSize="sm">{formattedAmount} ({button.currency?.toUpperCase()})</Text>
             <Button onClick={onClick}>
                 {button.label}
